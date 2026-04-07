@@ -184,19 +184,28 @@ export default function HomeScreen() {
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: '#4ECDC4' }]}
+            onPress={() => router.push('/auto-detect')}
+          >
+            <Ionicons name="flash" size={24} color="#fff" />
+            <Text style={styles.actionText}>Auto Detect</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: '#45B7D1' }]}
             onPress={() => router.push('/scan-sms')}
           >
             <Ionicons name="chatbox-ellipses" size={24} color="#fff" />
             <Text style={styles.actionText}>Scan SMS</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: '#45B7D1' }]}
-            onPress={() => router.push('/add-expense')}
-          >
-            <Ionicons name="add-circle" size={24} color="#fff" />
-            <Text style={styles.actionText}>Add Manual</Text>
-          </TouchableOpacity>
         </View>
+
+        {/* Secondary Actions */}
+        <TouchableOpacity
+          style={styles.manualAddButton}
+          onPress={() => router.push('/add-expense')}
+        >
+          <Ionicons name="add-circle-outline" size={20} color="#888" />
+          <Text style={styles.manualAddText}>Add Manual Entry</Text>
+        </TouchableOpacity>
 
         {/* Recent Transactions */}
         <View style={styles.recentSection}>
@@ -238,9 +247,17 @@ export default function HomeScreen() {
                     <Text style={styles.transactionDescription} numberOfLines={1}>
                       {expense.description}
                     </Text>
-                    <Text style={styles.transactionCategory}>
-                      {category.name} • {formatDate(expense.created_at)}
-                    </Text>
+                    <View style={styles.transactionMeta}>
+                      <Text style={styles.transactionCategory}>{category.name}</Text>
+                      <Text style={styles.transactionDot}>•</Text>
+                      <Text style={styles.transactionDate}>{formatDate(expense.created_at)}</Text>
+                      {expense.source === 'sms' && (
+                        <>
+                          <Text style={styles.transactionDot}>•</Text>
+                          <Ionicons name="chatbox" size={10} color="#4ECDC4" />
+                        </>
+                      )}
+                    </View>
                   </View>
                   <Text
                     style={[
@@ -382,6 +399,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  manualAddButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 20,
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#3e3e5e',
+    borderStyle: 'dashed',
+    gap: 8,
+  },
+  manualAddText: {
+    color: '#888',
+    fontSize: 14,
+  },
   recentSection: {
     marginTop: 24,
     paddingHorizontal: 20,
@@ -440,10 +474,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  transactionMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
   transactionCategory: {
     color: '#888',
     fontSize: 12,
-    marginTop: 2,
+  },
+  transactionDot: {
+    color: '#666',
+    marginHorizontal: 4,
+  },
+  transactionDate: {
+    color: '#666',
+    fontSize: 12,
   },
   transactionAmount: {
     fontSize: 14,

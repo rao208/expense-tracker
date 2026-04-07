@@ -14,6 +14,7 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="index" />
+        <Stack.Screen name="auto-detect" />
         <Stack.Screen name="scan-sms" />
         <Stack.Screen name="add-expense" />
         <Stack.Screen name="expenses" />
