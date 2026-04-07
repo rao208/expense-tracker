@@ -102,12 +102,12 @@ async def parse_sms_message(sms_body: str) -> dict:
     sms_lower = sms_body.lower()
     
     # Detect transaction type
-    if "debited" in sms_lower or "debit" in sms_lower or "spent" in sms_lower or "paid" in sms_lower or "withdrawn" in sms_lower:
+    if "debited" in sms_lower or "debit" in sms_lower or "spent" in sms_lower or "paid" in sms_lower or "withdrawn" in sms_lower or "send" in sms_lower or "sent" in sms_lower or "transferred" in sms_lower:
         result["transaction_type"] = "debit"
     elif "credited" in sms_lower or "credit" in sms_lower or "received" in sms_lower or "deposited" in sms_lower:
         result["transaction_type"] = "credit"
     else:
-        result["error"] = "Could not detect transaction type (Debited/Credited keywords not found)"
+        result["error"] = "Could not detect transaction type (Debited/Credited/Send keywords not found)"
         return result
     
     # Extract amount - various patterns
@@ -115,7 +115,7 @@ async def parse_sms_message(sms_body: str) -> dict:
         r'(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{2})?)',  # Rs. 500 or INR 500 or ₹500
         r'([\d,]+(?:\.\d{2})?)\s*(?:rs\.?|inr|₹)',  # 500 Rs or 500 INR
         r'(?:amount|amt)\s*(?:of)?\s*(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d{2})?)',  # amount of Rs 500
-        r'(?:debited|credited|spent|paid|received)\s*(?:for)?\s*(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d{2})?)',
+        r'(?:debited|credited|spent|paid|received|send|sent|transferred)\s*(?:for)?\s*(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d{2})?)',
         r'([\d,]+(?:\.\d{2})?)\s*(?:has been|is|was)\s*(?:debited|credited)',
     ]
     

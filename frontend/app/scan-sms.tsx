@@ -135,6 +135,7 @@ export default function ScanSMSScreen() {
   const sampleSMS = [
     'Rs.500.00 debited from A/c XX1234 to Swiggy on 15/07/25. Avl Bal: Rs.25000.00',
     'INR 1,200 credited to your A/c XX5678 from Salary. Avl Bal: INR 50,000',
+    'You have successfully send Rs.800 to John via UPI. Ref: TXN123456',
     'Rs.350 debited from A/c XX9999 at Amazon for online shopping. Ref: UPI123456',
   ];
 
