@@ -6,9 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Platform,
   ActivityIndicator,
   StatusBar,
+  Linking,
+  Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -57,14 +59,16 @@ export default function HomeScreen() {
   const router = useRouter();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [expensesRes, summaryRes] = await Promise.all([
+      const [expensesRes, summaryRes, categoriesRes] = await Promise.all([
         fetch(`${BACKEND_URL}/api/expenses?limit=10`),
         fetch(`${BACKEND_URL}/api/expenses/summary/totals`),
+        fetch(`${BACKEND_URL}/api/categories`),
       ]);
 
       if (expensesRes.ok) {
@@ -75,6 +79,11 @@ export default function HomeScreen() {
       if (summaryRes.ok) {
         const summaryData = await summaryRes.json();
         setSummary(summaryData);
+      }
+
+      if (categoriesRes.ok) {
+        const categoriesData = await categoriesRes.json();
+        setCategories(categoriesData.length > 0 ? categoriesData : DEFAULT_CATEGORIES);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -94,16 +103,29 @@ export default function HomeScreen() {
   }, [fetchData]);
 
   const getCategoryById = (id: string): Category => {
-    return DEFAULT_CATEGORIES.find((c) => c.id === id) || DEFAULT_CATEGORIES[7];
+    return categories.find((c) => c.id === id) || DEFAULT_CATEGORIES[7];
   };
 
   const formatCurrency = (amount: number) => {
-    return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `\u20b9${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      const url = `${BACKEND_URL}/api/export/excel`;
+      if (Platform.OS === 'web') {
+        window.open(url, '_blank');
+      } else {
+        await Linking.openURL(url);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to download report');
+    }
   };
 
   if (loading) {
@@ -134,11 +156,8 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>Expense Tracker</Text>
             <Text style={styles.subtitle}>Track your spending with SMS</Text>
           </View>
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => router.push('/settings')}
-          >
-            <Ionicons name="settings-outline" size={24} color="#fff" />
+          <TouchableOpacity style={styles.exportButton} onPress={handleExportExcel}>
+            <Ionicons name="download-outline" size={22} color="#4ECDC4" />
           </TouchableOpacity>
         </View>
 
@@ -186,26 +205,35 @@ export default function HomeScreen() {
             style={[styles.actionButton, { backgroundColor: '#4ECDC4' }]}
             onPress={() => router.push('/auto-detect')}
           >
-            <Ionicons name="flash" size={24} color="#fff" />
+            <Ionicons name="flash" size={22} color="#fff" />
             <Text style={styles.actionText}>Auto Detect</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: '#45B7D1' }]}
             onPress={() => router.push('/scan-sms')}
           >
-            <Ionicons name="chatbox-ellipses" size={24} color="#fff" />
+            <Ionicons name="chatbox-ellipses" size={22} color="#fff" />
             <Text style={styles.actionText}>Scan SMS</Text>
           </TouchableOpacity>
         </View>
 
         {/* Secondary Actions */}
-        <TouchableOpacity
-          style={styles.manualAddButton}
-          onPress={() => router.push('/add-expense')}
-        >
-          <Ionicons name="add-circle-outline" size={20} color="#888" />
-          <Text style={styles.manualAddText}>Add Manual Entry</Text>
-        </TouchableOpacity>
+        <View style={styles.secondaryActions}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => router.push('/upload-pdf')}
+          >
+            <Ionicons name="document-text" size={18} color="#DDA0DD" />
+            <Text style={styles.secondaryText}>Upload PDF</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => router.push('/add-expense')}
+          >
+            <Ionicons name="add-circle-outline" size={18} color="#888" />
+            <Text style={styles.secondaryText}>Manual Entry</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Recent Transactions */}
         <View style={styles.recentSection}>
@@ -249,11 +277,11 @@ export default function HomeScreen() {
                     </Text>
                     <View style={styles.transactionMeta}>
                       <Text style={styles.transactionCategory}>{category.name}</Text>
-                      <Text style={styles.transactionDot}>•</Text>
+                      <Text style={styles.transactionDot}>\u2022</Text>
                       <Text style={styles.transactionDate}>{formatDate(expense.created_at)}</Text>
                       {expense.source === 'sms' && (
                         <>
-                          <Text style={styles.transactionDot}>•</Text>
+                          <Text style={styles.transactionDot}>\u2022</Text>
                           <Ionicons name="chatbox" size={10} color="#4ECDC4" />
                         </>
                       )}
@@ -308,16 +336,16 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   greeting: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#fff',
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#888',
     marginTop: 4,
   },
-  settingsButton: {
+  exportButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -328,33 +356,33 @@ const styles = StyleSheet.create({
   summaryContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    marginTop: 20,
+    marginTop: 16,
     gap: 12,
   },
   summaryCard: {
     flex: 1,
     backgroundColor: '#2d2d44',
     borderRadius: 16,
-    padding: 16,
+    padding: 14,
   },
   expenseCard: {},
   incomeCard: {},
   summaryIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
   summaryLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#888',
     marginBottom: 4,
   },
   summaryAmount: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   balanceCard: {
@@ -362,27 +390,27 @@ const styles = StyleSheet.create({
     marginTop: 12,
     backgroundColor: '#2d2d44',
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     alignItems: 'center',
   },
   balanceLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#888',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   balanceAmount: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
   },
   transactionCount: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#666',
-    marginTop: 8,
+    marginTop: 6,
   },
   actionsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    marginTop: 20,
+    marginTop: 16,
     gap: 12,
   },
   actionButton: {
@@ -390,64 +418,68 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
   },
   actionText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
-  manualAddButton: {
+  secondaryActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginTop: 10,
+    gap: 12,
+  },
+  secondaryButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 20,
-    marginTop: 12,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#3e3e5e',
-    borderStyle: 'dashed',
-    gap: 8,
+    gap: 6,
   },
-  manualAddText: {
+  secondaryText: {
     color: '#888',
-    fontSize: 14,
+    fontSize: 13,
   },
   recentSection: {
-    marginTop: 24,
+    marginTop: 20,
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#fff',
   },
   seeAllText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#4ECDC4',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 32,
   },
   emptyText: {
     color: '#888',
-    fontSize: 16,
+    fontSize: 15,
     marginTop: 12,
   },
   emptySubtext: {
     color: '#666',
-    fontSize: 14,
+    fontSize: 13,
     marginTop: 4,
   },
   transactionItem: {
@@ -456,12 +488,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#2d2d44',
     borderRadius: 12,
     padding: 12,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   transactionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -471,7 +503,7 @@ const styles = StyleSheet.create({
   },
   transactionDescription: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
   },
   transactionMeta: {
@@ -481,7 +513,7 @@ const styles = StyleSheet.create({
   },
   transactionCategory: {
     color: '#888',
-    fontSize: 12,
+    fontSize: 11,
   },
   transactionDot: {
     color: '#666',
@@ -489,10 +521,10 @@ const styles = StyleSheet.create({
   },
   transactionDate: {
     color: '#666',
-    fontSize: 12,
+    fontSize: 11,
   },
   transactionAmount: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
 });
