@@ -20,5 +20,6 @@
   },
   "submit": {
     "production": {}
-  }
+  },
+  "projectRoot": "frontend"
 }
