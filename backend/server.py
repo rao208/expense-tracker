@@ -16,12 +16,29 @@ import io
 import pdfplumber
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from urllib.parse import quote_plus
+
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+
+# username=quote_plus(os.environ['USERNAME'])
+# password=quote_plus(os.environ['PASSWORD'])
+username=os.environ['MONGO_USERNAME']
+password=os.environ['MONGO_PASSWORD']
+app_name = os.environ['APP_NAME']
+
+print("Username being used:", os.environ['MONGO_USERNAME'])
+print("Password being used:", os.environ['MONGO_PASSWORD'])
+
+
+# mongo_url = f"mongodb+srv://{username}:{password}@cluster0.jrf15ov.mongodb.net/expenses?retryWrites=true&w=majority"
+
+# mongo_url=f"mongodb+srv://{username}:{password}@{app_name}.jrf15ov.mongodb.net/?retryWrites=true&w=majority" # /?appName={app_name}"
+mongo_url = f"mongodb+srv://{username}:{password}@{app_name}.jrf15ov.mongodb.net/"
+
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
